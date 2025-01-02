@@ -113,13 +113,13 @@ app = create_app()
 def tokyo_time():
     return datetime.now(pytz.timezone('Asia/Tokyo'))
 
-@app.context_processor
-def inject_canonical_url():
-    """
-    テンプレートにカノニカルURLを提供する
-    """
-    canonical_url = request.base_url  # クエリパラメータを除外したURLを取得
-    return dict(canonical_url=canonical_url)
+# @app.context_processor
+# def inject_canonical_url():
+#     """
+#     テンプレートにカノニカルURLを提供する
+#     """
+#     canonical_url = request.base_url  # クエリパラメータを除外したURLを取得
+#     return dict(canonical_url=canonical_url)
 
 
 @login_manager.user_loader
@@ -592,44 +592,44 @@ class User(UserMixin):
             return item
         
 
-def log_cache_access(func):
-    """キャッシュアクセスをログに記録するデコレータ"""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        func_name = func.__name__
+# def log_cache_access(func):
+#     """キャッシュアクセスをログに記録するデコレータ"""
+#     @wraps(func)
+#     def wrapper(*args, **kwargs):
+#         func_name = func.__name__
         
-        # シンプルなログメッセージ
-        logger.info(f"Cache check: {func_name}")
+#         # シンプルなログメッセージ
+#         logger.info(f"Cache check: {func_name}")
         
-        result = func(*args, **kwargs)
-        return result
-    return wrapper        
+#         result = func(*args, **kwargs)
+#         return result
+#     return wrapper        
 
 
-def get_user_from_dynamodb(user_id):
-    try:
-        # DynamoDBからユーザーデータを取得
-        response = app.dynamodb.get_item(
-            TableName=app.table_name,
-            Key={"user#user_id": {"S": user_id}}
+# def get_user_from_dynamodb(user_id):
+#     try:
+#         # DynamoDBからユーザーデータを取得
+#         response = app.dynamodb.get_item(
+#             TableName=app.table_name,
+#             Key={"user#user_id": {"S": user_id}}
             
-        )
+#         )
         
-        # データが存在しない場合
-        if 'Item' not in response:
-            app.logger.info(f"User not found in DynamoDB for user_id: {user_id}")
-            return None
+#         # データが存在しない場合
+#         if 'Item' not in response:
+#             app.logger.info(f"User not found in DynamoDB for user_id: {user_id}")
+#             return None
 
-        item = response['Item']
+#         item = response['Item']
 
-        # DynamoDBのデータをUserクラスのインスタンスに変換
-        user = User.from_dynamodb_item(item)
-        app.logger.debug(f"User successfully loaded for user_id: {user_id}")
-        return user
+#         # DynamoDBのデータをUserクラスのインスタンスに変換
+#         user = User.from_dynamodb_item(item)
+#         app.logger.debug(f"User successfully loaded for user_id: {user_id}")
+#         return user
 
-    except Exception as e:
-        app.logger.error(f"Error fetching user from DynamoDB for user_id: {user_id}: {str(e)}", exc_info=True)
-        return None
+#     except Exception as e:
+#         app.logger.error(f"Error fetching user from DynamoDB for user_id: {user_id}: {str(e)}", exc_info=True)
+#         return None
     
 
 
@@ -821,17 +821,10 @@ def get_schedules_with_formatting():
 @app.route("/index", methods=['GET'])
 def index():
     try:
-        # キャッシュされたフォーマット済みスケジュールを取得
         schedules = get_schedules_with_formatting()
-        
-        template_params = {
-            'title': "鶯 | 越谷市バドミントンサークル",
-            'description': "越谷市で活動しているバドミントンサークルです。経験者から初心者まで楽しく活動中。見学・体験随時募集中。",
-            'canonical': url_for('index', _external=True),
-            'schedules': schedules
-        }
-        
-        return render_template("index.html", **template_params)
+        return render_template("index.html", 
+                             schedules=schedules,
+                             canonical=url_for('index', _external=True))
         
     except Exception as e:
         logger.error(f"Error in index route: {str(e)}")

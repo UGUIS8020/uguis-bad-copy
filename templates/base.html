@@ -13,12 +13,12 @@
       gtag('js', new Date());
 
       gtag('config', 'G-HL8MJRHSX8');
-    </script>   
-   
+    </script>      
     
-    <!-- タイトルタグの最適化 -->    
-    <title>{% block title %}{{ title|default('鶯 | 越谷市バドミントンサークル') }}{% endblock %}</title>
-    <meta name="description" content="{{ description|default('越谷市北越谷で活動している社会人バドミントンサークルです。経験者から初心者まで楽しく活動中。見学・体験随時募集中。まずはお気軽にお問い合わせください。') }}">
+    <!-- タイトルタグの最適化 -->
+    <title>{% block title %}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{% endblock %}">
+    <link rel="canonical" href="{{ canonical }}">    
     <!-- カノニカルタグを設定 -->   
     
         
