@@ -65,3 +65,24 @@
 .btn-danger:disabled {
   opacity: 1; /* デフォルトで0.65程度になっているので1に戻す */
 }
+
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.btn-group .btn {
+    transition: all 0.2s;
+}
+
+.fa-heart {
+    transition: transform 0.2s;
+}
+
+.btn:hover .fa-heart {
+    transform: scale(1.1);
+}
