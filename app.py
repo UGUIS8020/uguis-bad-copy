@@ -113,14 +113,6 @@ app = create_app()
 def tokyo_time():
     return datetime.now(pytz.timezone('Asia/Tokyo'))
 
-# @app.context_processor
-# def inject_canonical_url():
-#     """
-#     テンプレートにカノニカルURLを提供する
-#     """
-#     canonical_url = request.base_url  # クエリパラメータを除外したURLを取得
-#     return dict(canonical_url=canonical_url)
-
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -857,6 +849,7 @@ def signup():
             user_id = str(uuid.uuid4())          
 
             table = app.dynamodb.Table(app.table_name) 
+            posts_table = app.dynamodb.Table('posts')  # 投稿用テーブル
 
             # メールアドレスの重複チェック用のクエリ
             email_check = table.query(
@@ -892,11 +885,28 @@ def signup():
                     "emergency_phone": form.emergency_phone.data,
                     "badminton_experience": form.badminton_experience.data,
                     "organization": form.organization.data,
+                    # プロフィール用の追加フィールド
+                    "bio": "",  # 自己紹介
+                    "profile_image_url": "",  # プロフィール画像URL
+                    "followers_count": 0,  # フォロワー数
+                    "following_count": 0,  # フォロー数
+                    "posts_count": 0  # 投稿数
                 },
                 ConditionExpression='attribute_not_exists(#user_id)',
                 ExpressionAttributeNames={ "#user_id": "user#user_id"
                 }
             )
+
+            posts_table.put_item(
+                Item={
+                    'PK': f"USER#{user_id}",
+                    'SK': 'TIMELINE#DATA',
+                    'user_id': user_id,
+                    'created_at': current_time,
+                    'updated_at': current_time,
+                    'last_post_time': None
+                }
+            )           
             
 
             # ログ出力を詳細に
@@ -1503,6 +1513,36 @@ def delete_image(filename):
     except Exception as e:
         print(f"Error deleting {filename}: {e}")
         return "Error deleting the image", 500
+    
+
+# プロフィール表示用
+@app.route('/user/<string:user_id>')
+def user_profile(user_id):
+    try:
+        table = app.dynamodb.Table(app.table_name)
+        response = table.get_item(Key={'user#user_id': user_id})
+        user = response.get('Item')
+
+        if not user:
+            abort(404)
+
+        # 投稿データの取得を追加
+        posts_table = app.dynamodb.Table('posts')
+        posts_response = posts_table.query(
+            KeyConditionExpression="PK = :pk AND begins_with(SK, :sk_prefix)",
+            ExpressionAttributeValues={
+                ':pk': f"USER#{user_id}",
+                ':sk_prefix': 'METADATA#'
+            }
+        )
+        posts = posts_response.get('Items', [])
+
+        return render_template('user_profile.html', user=user, posts=posts)
+
+    except Exception as e:
+        app.logger.error(f"Error loading profile: {str(e)}")
+        flash('プロフィールの読み込み中にエラーが発生しました', 'error')
+        return redirect(url_for('index'))
 
     
 @app.route("/uguis2024_tournament")

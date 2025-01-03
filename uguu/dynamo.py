@@ -15,39 +15,44 @@ class DynamoDB:
         self.posts_table = self.dynamodb.Table('posts')
         self.users_table = self.dynamodb.Table('bad-users')
 
+
     def get_posts(self, limit=20):
         try:
             print("Attempting to get posts...")
+            
             response = self.posts_table.scan(
-                FilterExpression="begins_with(SK, :prefix)",
+                FilterExpression="begins_with(PK, :pk_prefix) AND begins_with(SK, :sk_prefix)",
                 ExpressionAttributeValues={
-                    ':prefix': 'METADATA'
+                    ':pk_prefix': 'POST#',
+                    ':sk_prefix': 'METADATA#'
                 }
             )
+            
             posts = response.get('Items', [])
+            if not posts:
+                print("No posts found.")
+                return []
 
+            # 各投稿にユーザー情報を追加
             for post in posts:
                 user_id = post.get('user_id')
                 if user_id:
                     try:
-                        # パーティションキーの形式を修正
+                            # ユーザーIDのフォーマットを修正
                         user_response = self.users_table.get_item(
                             Key={
                                 'user#user_id': user_id  # テーブルの設定に合わせて修正
                             }
                         )
-                        print(f"User response: {user_response}")
-                        
                         user = user_response.get('Item', {})
                         post['display_name'] = user.get('display_name', '名前なし')
                         post['user_name'] = user.get('user_name', 'unknown')
-                        
                     except Exception as e:
                         print(f"Error getting user data: {str(e)}")
                         post['display_name'] = '名前なし'
                         post['user_name'] = 'unknown'
 
-            return sorted(posts, key=lambda x: x['created_at'], reverse=True)
+            return sorted(posts, key=lambda x: x.get('created_at', ''), reverse=True)[:limit]
 
         except Exception as e:
             print(f"Error getting posts: {e}")
@@ -100,17 +105,17 @@ class DynamoDB:
         """postsテーブルが存在しない場合は作成"""
         try:
             existing_tables = self.dynamodb.meta.client.list_tables()['TableNames']
-            if 'posts' not in existing_tables:
+            if 'post' not in existing_tables:
                 table = self.dynamodb.create_table(
-                    TableName='posts',
+                    TableName='post',
                     KeySchema=[
                         {
                             'AttributeName': 'PK',
-                            'KeyType': 'HASH'  # Partition key
+                            'KeyType': 'HASH'
                         },
                         {
                             'AttributeName': 'SK',
-                            'KeyType': 'RANGE'  # Sort key
+                            'KeyType': 'RANGE'
                         }
                     ],
                     AttributeDefinitions=[
@@ -121,6 +126,24 @@ class DynamoDB:
                         {
                             'AttributeName': 'SK',
                             'AttributeType': 'S'
+                        },
+                        {
+                            'AttributeName': 'GSI1PK',
+                            'AttributeType': 'S'
+                        },
+                        {
+                            'AttributeName': 'GSI1SK',
+                            'AttributeType': 'S'
+                        }
+                    ],
+                    GlobalSecondaryIndexes=[
+                        {
+                            'IndexName': 'GSI1',
+                            'KeySchema': [
+                                {'AttributeName': 'GSI1PK', 'KeyType': 'HASH'},
+                                {'AttributeName': 'GSI1SK', 'KeyType': 'RANGE'}
+                            ],
+                            'Projection': {'ProjectionType': 'ALL'}
                         }
                     ],
                     BillingMode='PAY_PER_REQUEST'

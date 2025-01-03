@@ -20,6 +20,43 @@ def init_dynamodb():
         region_name=os.getenv("AWS_REGION")
     )
 
+# def create_posts_table(dynamodb):
+#     """
+#     Posts テーブルを作成する
+#     """
+#     try:
+#         table = dynamodb.create_table(
+#             TableName=POSTS_TABLE_NAME,
+#             KeySchema=[
+#                 {'AttributeName': 'PK', 'KeyType': 'HASH'},
+#                 {'AttributeName': 'SK', 'KeyType': 'RANGE'}
+#             ],
+#             AttributeDefinitions=[
+#                 {'AttributeName': 'PK', 'AttributeType': 'S'},
+#                 {'AttributeName': 'SK', 'AttributeType': 'S'},
+#                 {'AttributeName': 'GSI1PK', 'AttributeType': 'S'},
+#                 {'AttributeName': 'GSI1SK', 'AttributeType': 'S'}
+#             ],
+#             GlobalSecondaryIndexes=[
+#                 {
+#                     'IndexName': 'GSI1',
+#                     'KeySchema': [
+#                         {'AttributeName': 'GSI1PK', 'KeyType': 'HASH'},
+#                         {'AttributeName': 'GSI1SK', 'KeyType': 'RANGE'}
+#                     ],
+#                     'Projection': {'ProjectionType': 'ALL'}
+#                 }
+#             ],
+#             BillingMode='PAY_PER_REQUEST'
+#         )
+#         print(f"テーブル '{POSTS_TABLE_NAME}' を作成中...")
+#         table.meta.client.get_waiter('table_exists').wait(TableName=POSTS_TABLE_NAME)
+#         print(f"テーブル '{POSTS_TABLE_NAME}' が作成されました。")
+#         return table
+#     except Exception as e:
+#         print(f"Postsテーブルの作成中にエラーが発生しました: {str(e)}")
+#         raise
+
 def create_posts_table(dynamodb):
     """
     Posts テーブルを作成する
@@ -56,6 +93,8 @@ def create_posts_table(dynamodb):
     except Exception as e:
         print(f"Postsテーブルの作成中にエラーが発生しました: {str(e)}")
         raise
+
+
 
 def create_follows_table(dynamodb):
     """

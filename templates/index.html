@@ -1,7 +1,50 @@
 {% extends "base.html" %}
 {% block title %}鶯 | 越谷市バドミントンサークル{% endblock %}
 {% block description %}越谷市で活動しているバドミントンサークルです。経験者から初心者まで楽しく活動中。見学・体験随時募集中。{% endblock %}
-{% block content %}      
+{% block content %}   
+
+<style>   
+.accordion-button::after {
+    display: none !important;  /* アコーディオンの矢印を非表示 */
+}
+.accordion-header{
+    background-color: #ffffff;
+    padding: 100;
+    margin: 5;   
+}
+
+.accordion-button {  
+    background-color: #ffffff;;  
+    padding: 0;
+    margin: 0;
+    font-size: 1.2rem; /* フォントサイズを調整 */
+}
+
+.accordion-item {
+    background-color: #ffffff;;
+    padding: 5px;
+    margin: 5px;
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 0.25rem !important;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+    .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }        
+    
+}
+
+.participant-name {
+    z-index: 1000;
+    position: relative;
+    pointer-events: auto;
+}
+
+</style>
 
 <section id="about" class="mt-3 mb-3 text-center">
     <h1>鶯badminton バドミントン</h1> 
@@ -120,7 +163,11 @@
                                             <div class="col-md-4 col-sm-6 mb-2">
                                                 <div class="card">
                                                     <div class="card-body py-2">
-                                                        <span class="participant-name">{{ participant.display_name }}</span>
+                                                         <a href="{{ url_for('user_profile', user_id=participant.user_id) }}" 
+                                                        class="participant-name"
+                                                        onclick="event.stopPropagation();">  <!-- イベントの伝播を停止 -->
+                                                            {{ participant.display_name }}
+                                                        </a>
                                                         <span class="badge ms-2">{{ participant.badminton_experience }}</span>
                                                         
                                                     </div>
@@ -141,41 +188,7 @@
     </section>
 </div>
 
-<style>   
-.accordion-button::after {
-    display: none !important;  /* アコーディオンの矢印を非表示 */
-}
-.accordion-header{
-    background-color: #ffffff;
-    padding: 100;
-    margin: 5;   
-}
 
-.accordion-button {  
-    background-color: #ffffff;;  
-    padding: 0;
-    margin: 0;
-    font-size: 1.2rem; /* フォントサイズを調整 */
-}
-
-.accordion-item {
-    background-color: #ffffff;;
-    padding: 5px;
-    margin: 5px;
-    border: 1px solid rgba(0,0,0,.125);
-    border-radius: 0.25rem !important;
-}
-
-/* レスポンシブ調整 */
-@media (max-width: 768px) {
-    .d-flex {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 0.5rem;
-    }        
-    
-}
-</style>
 
 
 
