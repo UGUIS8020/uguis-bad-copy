@@ -1246,16 +1246,24 @@ def user_maintenance():
         response = app.table.scan()
         
         # デバッグ用に取得したユーザーデータを表示
-        users = response.get('Items', [])
-        app.logger.info(f"Users data: {users}")
-        app.logger.info(f"Retrieved {len(users)} users for maintenance page")
+        users = response.get('Items', [])        
         for user in users:
             if 'user#user_id' in user:
                 user['user_id'] = user.pop('user#user_id').replace('user#', '')
 
         
 
-        return render_template("user_maintenance.html", users=users, page=1, has_next=False)
+         # created_at の降順でソート（新しい順）
+        sorted_users = sorted(users, 
+                            key=lambda x: x.get('created_at'),
+                            reverse=True)
+
+        app.logger.info(f"Sorted users by created_at: {sorted_users}")
+
+        return render_template("user_maintenance.html", 
+                             users=sorted_users, 
+                             page=1, 
+                             has_next=False)
 
     except ClientError as e:
         app.logger.error(f"DynamoDB error: {str(e)}")
