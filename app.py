@@ -11,7 +11,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from werkzeug.utils import secure_filename
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import io
 from PIL import Image, ExifTags
 from dateutil import parser
@@ -44,12 +44,21 @@ def create_app():
         
         # Secret Keyの設定
         app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", os.urandom(24))
-        print(f"Secret key: {app.config['SECRET_KEY']}")
+        
+          # セッションの永続化設定を追加
+        app.config.update(
+            PERMANENT_SESSION_LIFETIME = timedelta(days=30),  # セッション有効期限
+            SESSION_PERMANENT = True,  # セッションを永続化
+            SESSION_TYPE = 'filesystem',  # セッションの保存方式
+            SESSION_COOKIE_SECURE = True,  # HTTPS接続のみ
+            SESSION_COOKIE_HTTPONLY = True,  # JavaScriptからのアクセスを防止
+            SESSION_COOKIE_SAMESITE = 'Lax'  # クロスサイトリクエスト制限
+        )
         
         # キャッシュの設定と初期化
         app.config['CACHE_TYPE'] = 'SimpleCache'
-        app.config['CACHE_DEFAULT_TIMEOUT'] = 000
-        app.config['CACHE_THRESHOLD'] = 0000
+        app.config['CACHE_DEFAULT_TIMEOUT'] = 600
+        app.config['CACHE_THRESHOLD'] = 900
         app.config['CACHE_KEY_PREFIX'] = 'uguis_'
 
         # 既存のcacheオブジェクトを初期化
@@ -393,7 +402,7 @@ class TempRegistrationForm(FlaskForm):
 class LoginForm(FlaskForm):
     email = StringField('メールアドレス', validators=[DataRequired(message='メールアドレスを入力してください'), Email(message='正しいメールアドレスの形式で入力してください')])
     password = PasswordField('パスワード', validators=[DataRequired(message='パスワードを入力してください')])
-    remember = BooleanField('ログイン状態を保持する')
+    remember = BooleanField('ログイン状態を保持する')    
     submit = SubmitField('ログイン')
 
     def __init__(self, *args, **kwargs):
@@ -1009,11 +1018,9 @@ def login():
                 return render_template('login.html', form=form)
 
             if user.check_password(form.password.data):
-                login_user(user, remember=form.remember.data)  
-                app.logger.debug(f"Session after login: {session}")  # セッション情報を確認
-                app.logger.info(f"User logged in: {user.get_id()}")
-                app.logger.debug(f"Session data: {session}")                                           
-                app.logger.info(f"User logged in successfully - ID: {user.id}, is_authenticated: {current_user.is_authenticated}")
+                session.permanent = True  # セッションを永続化
+                login_user(user, remember=True)  # 常にremember=Trueに設定
+                
                 flash('ログインに成功しました。', 'success')
                 
                 next_page = request.args.get('next')

@@ -1,6 +1,15 @@
 {% extends "base.html" %}
+
+{# SEO最適化 #}
 {% block title %}鶯 | 越谷市バドミントンサークル{% endblock %}
 {% block description %}越谷市で活動しているバドミントンサークルです。経験者から初心者まで楽しく活動中。見学・体験随時募集中。{% endblock %}
+{% block keywords %}越谷市, バドミントン, サークル, 練習, 見学, 体験{% endblock %}
+
+{# OGP設定 #}
+{% block og_title %}{{ self.title() }}{% endblock %}
+{% block og_description %}{{ self.description() }}{% endblock %}
+{% block og_type %}website{% endblock %}
+
 {% block content %}   
 
 <style>   

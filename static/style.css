@@ -4,6 +4,13 @@
   margin: 0;
 }
 
+.navbar-brand h1 {
+    /* スタイルをここに */
+    font-size: 1.5rem;
+    margin: 0;
+    /* 他のスタイル */
+}
+
 #about h3 {
   color: #333333;
   font-weight: bold;
