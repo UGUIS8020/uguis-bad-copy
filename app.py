@@ -3,8 +3,8 @@ from flask_wtf import FlaskForm
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session, jsonify, current_app
 from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from wtforms import ValidationError, StringField, PasswordField, SubmitField, SelectField, DateField, BooleanField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
+from wtforms import ValidationError, StringField, PasswordField, SubmitField, SelectField, DateField, BooleanField, IntegerField
+from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, NumberRange
 import pytz
 import os
 import boto3
@@ -468,6 +468,19 @@ class ScheduleForm(FlaskForm):
         ('総合体育館 第二 3面', '総合体育館 第二 3面'),
         ('ウィングハット', 'ウィングハット')
     ])
+
+    max_participants = IntegerField('参加人数制限', 
+        validators=[
+            DataRequired(),
+            NumberRange(min=1, max=50, message='1人から50人までの間で設定してください')
+        ],
+        default=10,
+        render_kw={
+            "min": "1",
+            "max": "50",
+            "type": "number"
+        }
+    )
     
     start_time = SelectField('開始時間', validators=[DataRequired()], choices=[
         ('', '選択してください')] + 
@@ -486,6 +499,25 @@ class ScheduleForm(FlaskForm):
     ], default='active')
     
     submit = SubmitField('登録')
+
+    def validate_max_participants(self, field):
+        """
+        会場に応じた参加人数の上限をチェック
+        """
+        venue = self.venue.data
+        if venue:
+            max_allowed = {
+                '北越谷 A面': 20,
+                '北越谷 B面': 20,
+                '北越谷 AB面': 40,
+                '総合体育館 第一 2面': 16,
+                '総合体育館 第一 6面': 48,
+                '総合体育館 第二 3面': 24,
+                'ウィングハット': 32
+            }.get(venue)
+            
+            if max_allowed and field.data > max_allowed:
+                raise ValidationError(f'この会場の最大参加可能人数は{max_allowed}人です')
 
 
 class User(UserMixin):
@@ -711,6 +743,10 @@ def get_schedules_with_formatting():
                             'display_name': user.get('display_name', '未登録'),
                             'badminton_experience': user.get('badminton_experience', '')
                         })
+
+                 # max_participantsとparticipants_countの処理を追加
+                schedule['max_participants'] = int(schedule.get('max_participants', 10))  # デフォルト値15
+                schedule['participants_count'] = len(schedule.get('participants', []))
                 
                 schedule['participants_info'] = participants_info
                 formatted_schedules.append(schedule)
@@ -732,8 +768,12 @@ def get_schedules_with_formatting():
 def index():
     try:
         schedules = get_schedules_with_formatting()
+         # より詳細なデバッグ情報をログに記録
+        logger.debug(f"Total schedules retrieved: {len(schedules)}")
+        for schedule in schedules:
+            print(f"Schedule data: {schedule}")
         return render_template("index.html", 
-                             schedules=schedules,
+                             schedules=schedules,                             
                              canonical=url_for('index', _external=True))
         
     except Exception as e:
@@ -1075,6 +1115,7 @@ def admin_schedules():
                 'venue': form.venue.data,
                 'start_time': form.start_time.data,
                 'end_time': form.end_time.data,
+                'max_participants': form.max_participants.data,
                 'created_at': datetime.now().isoformat(),
                 'participants_count': 0,
                 'status': 'active'

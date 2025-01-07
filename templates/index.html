@@ -5,11 +5,6 @@
 {% block description %}越谷市で活動しているバドミントンサークルです。経験者から初心者まで楽しく活動中。見学・体験随時募集中。{% endblock %}
 {% block keywords %}越谷市, バドミントン, サークル, 練習, 見学, 体験{% endblock %}
 
-{# OGP設定 #}
-{% block og_title %}{{ self.title() }}{% endblock %}
-{% block og_description %}{{ self.description() }}{% endblock %}
-{% block og_type %}website{% endblock %}
-
 {% block content %}   
 
 <style>   
@@ -123,7 +118,20 @@
                                         <span>{{ schedule.date | format_date }}({{ schedule.day_of_week }})</span>
                                         <span>{{ schedule.start_time }} 〜 {{ schedule.end_time }}</span>
                                         <span>{{ schedule.venue }}</span>                                        
-                                        <span class="ms-2"> 参加者{{ schedule.participants_count }}</span>
+                                        
+                                    
+                                        <!-- 参加者数 -->
+                               
+                                        参加者{{ schedule.participants_count }}/{{ schedule.max_participants }}
+                                    
+                                    <!-- 募集状態 -->
+                                    {% if schedule.participants_count >= schedule.max_participants %}
+                                        <div class="badge bg-danger">募集終了</div>
+                                    {% else %}
+                                        <div class="badge bg-success">募集中</div>
+                                    {% endif %}
+                                   
+                                     
                                     </div>
                                 </button>
                             </div>
