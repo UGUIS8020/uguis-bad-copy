@@ -22,6 +22,7 @@ import random
 from urllib.parse import urlparse, urljoin
 from uguu.timeline import uguu
 from uguu.post import post
+from utils.count_experience import can_join_schedule
 
 from dotenv import load_dotenv
 
@@ -175,7 +176,7 @@ class RegistrationForm(FlaskForm):
         'バドミントン歴', 
         choices=[
             ('', 'バドミントン歴を選択してください'),
-            ('未経験者', '未経験者'),
+            ('未経験', '未経験'),
             ('1年未満', '1年未満'),
             ('1～3年未満', '1～3年未満'),
             ('3年以上', '3年以上')
@@ -240,7 +241,7 @@ class UpdateUserForm(FlaskForm):
         'バドミントン歴', 
         choices=[
             ('', 'バドミントン歴を選択してください'),
-            ('未経験者', '未経験者'),
+            ('未経験', '未経験'),
             ('1年未満', '1年未満'),
             ('1～3年未満', '1～3年未満'),
             ('3年以上', '3年以上')
@@ -341,7 +342,7 @@ class TempRegistrationForm(FlaskForm):
         'バドミントン歴', 
         choices=[
             ('', 'バドミントン歴を選択してください'),
-            ('未経験者', '未経験者'),
+            ('未経験', '未経験'),
             ('1年未満', '1年未満'),
             ('1～3年未満', '1～3年未満'),
             ('3年以上', '3年以上')
@@ -1163,21 +1164,20 @@ def edit_schedule(schedule_id):
     table = get_schedule_table()
 
     try:
-        scan_response = table.scan(
-            FilterExpression='schedule_id = :sid',
+        # スケジュールの取得（スキャンではなくGetItemを使用）
+        schedule = None
+        schedules = table.query(
+            KeyConditionExpression='schedule_id = :sid',
             ExpressionAttributeValues={
                 ':sid': schedule_id
             }
-        )
+        ).get('Items', [])
         
-        logging.debug(f"Scan response: {scan_response}")
-        
-        items = scan_response.get('Items', [])
-        if not items:
+        if schedules:
+            schedule = schedules[0]
+        else:
             flash('スケジュールが見つかりません', 'error')
             return redirect(url_for('index'))
-            
-        schedule = items[0]
         
         if request.method == 'GET':
             form.date.data = datetime.strptime(schedule['date'], '%Y-%m-%d').date()
@@ -1185,38 +1185,51 @@ def edit_schedule(schedule_id):
             form.venue.data = schedule['venue']
             form.start_time.data = schedule['start_time']
             form.end_time.data = schedule['end_time']
-            # ステータスの初期値を設定
             form.status.data = schedule.get('status', 'active')
-            logging.debug(f"Loaded form data: {form.data}")
-        
+            form.max_participants.data = schedule.get('max_participants', 10)
+            
         elif request.method == 'POST':
-            logging.debug(f"Received POST data: {request.form}")
             if form.validate_on_submit():
                 try:
-                    new_item = schedule.copy()
-                    new_item.update({
-                        'schedule_id': schedule_id,
-                        'date': form.date.data.isoformat(),
-                        'day_of_week': form.day_of_week.data,
-                        'venue': form.venue.data,
-                        'start_time': form.start_time.data,
-                        'end_time': form.end_time.data,
-                        'updated_at': datetime.now().isoformat(),
-                        'status': form.status.data
-                    })
+                    # 参加者数のチェック
+                    current_participants = schedule.get('participants', [])
+                    if len(current_participants) > form.max_participants.data:
+                        flash('参加人数制限は現在の参加者数より少なく設定できません。', 'error')
+                        return render_template(
+                            'edit_schedule.html',
+                            form=form,
+                            schedule=schedule,
+                            schedule_id=schedule_id
+                        )
+
+                    # UpdateItemを使用して特定のフィールドを更新
+                    table.update_item(
+                        Key={
+                            'schedule_id': schedule_id,
+                            'date': schedule['date']  # DynamoDBのプライマリーキー
+                        },
+                        UpdateExpression="SET day_of_week = :dow, venue = :v, start_time = :st, "
+                                       "end_time = :et, max_participants = :mp, "
+                                       "updated_at = :ua, #status = :s",
+                        ExpressionAttributeValues={
+                            ':dow': form.day_of_week.data,
+                            ':v': form.venue.data,
+                            ':st': form.start_time.data,
+                            ':et': form.end_time.data,
+                            ':mp': form.max_participants.data,
+                            ':ua': datetime.now().isoformat(),
+                            ':s': form.status.data
+                        },
+                        ExpressionAttributeNames={
+                            '#status': 'status'  # statusは予約語なので別名を使用
+                        }
+                    )
                     
-                    if 'participants' in schedule:
-                        new_item['participants'] = schedule['participants']
-                    
-                    logging.debug(f"Updating item with structure: {new_item}")
-                    
-                    table.put_item(Item=new_item)
                     cache.delete_memoized(get_schedules_with_formatting)
-                    
                     flash('スケジュールを更新しました', 'success')
                     return redirect(url_for('index'))
                     
-                except Exception as e:
+                except ClientError as e:
                     app.logger.error(f"スケジュール更新エラー: {str(e)}")
                     flash('スケジュールの更新中にエラーが発生しました', 'error')
             else:
