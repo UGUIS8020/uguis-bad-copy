@@ -126,7 +126,7 @@
                                     
                                     <!-- 募集状態 -->
                                     {% if schedule.participants_count >= schedule.max_participants %}
-                                        <div class="badge bg-danger">募集終了</div>
+                                        <div class="badge bg-warning text-dark">満員御礼</div>
                                     {% else %}
                                         <div class="badge bg-success">募集中</div>
                                     {% endif %}
@@ -159,7 +159,7 @@
                                 {% if not current_user.is_authenticated %}
                                     参加する
                                 {% elif schedule.participants_count >= schedule.max_participants and current_user.id not in schedule.participants %}
-                                    募集終了
+                                    満員御礼
                                 {% elif current_user.id in schedule.participants %}
                                     参加済み
                                 {% else %}
