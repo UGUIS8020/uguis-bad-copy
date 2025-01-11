@@ -116,12 +116,13 @@
                             data-bs-target="#collapse{{ schedule.schedule_id }}"
                             aria-expanded="false"
                             aria-controls="collapse{{ schedule.schedule_id }}">
+                            
                         <div class="d-flex align-items-center flex-nowrap w-100">
                             <div class="d-flex align-items-center flex-grow-1">
-                                <span class="me-2">{{ schedule.date | format_date }}({{ schedule.day_of_week }})</span>
-                                <span class="me-2">{{ schedule.start_time }} 〜 {{ schedule.end_time }}</span>
-                                <span class="me-2">{{ schedule.venue }}</span>
-                                <span class="me-2">参加者{{ schedule.participants_count }}/{{ schedule.max_participants }}</span>
+                                <span class="me-2">{{ schedule.date | format_date }}({{ schedule.day_of_week }})
+                                {{ schedule.start_time }} ~ {{ schedule.end_time }}</span>
+                                <span class="me-2">{{ schedule.venue }}
+                                {{ schedule.participants_count }}/{{ schedule.max_participants }}</span>
                             </div>
                             
                             <!-- 募集状態 -->
@@ -130,12 +131,11 @@
                             {% else %}
                                 <div class="badge bg-success">募集中</div>
                             {% endif %}
-                        </div>
-                    </button>
-                </div>
+                        
+                       
                             
                             <!-- 時間と参加ボタン -->
-                            <div class="d-flex align-items-center">
+                            
                                 <button
                                 class="btn btn-sm join-button m-1 text-nowrap                                          
                                 {% if not current_user.is_authenticated %}
@@ -163,9 +163,7 @@
                                 {% else %}
                                     参加
                                 {% endif %}
-                            </button>                                
-                            </div>
-                        </div>
+                            </button>                         
                     </h2>
                     
                     <div id="collapse{{ schedule.schedule_id }}" 
